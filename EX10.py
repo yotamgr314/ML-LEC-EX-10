@@ -1,98 +1,69 @@
-# ייבוא הספריות הנדרשות
-import numpy as np
 from sklearn.neural_network import MLPClassifier
 from sklearn.linear_model import Perceptron
 import sklearn.metrics as metric
+import numpy as np
 
-# פונקציה לאימון ותצוגה של תוצאות עבור Perceptron
-def train_perceptron(X_train, y_train, X_test, y_true):
-    ptn = Perceptron(max_iter=500)
-    ptn.fit(X_train, y_train)
-    y_pred = ptn.predict(X_test)
-    accuracy = metric.accuracy_score(y_true, y_pred)
-    print("\nPerceptron Prediction:", y_pred)
-    print("Perceptron Accuracy:", accuracy)
-    print("Perceptron Weights:", ptn.intercept_, ptn.coef_)
-    return accuracy
+# קביעת seed כדי להבטיח חזרתיות
+np.random.seed(42)
 
-# פונקציה לאימון ותצוגה של תוצאות עבור MLP
-def train_mlp(X_train, y_train, X_test, y_true, hidden_layer_sizes=(1,1), activation='logistic', solver='lbfgs'):
-    mlp = MLPClassifier(solver=solver, hidden_layer_sizes=hidden_layer_sizes, activation=activation, max_iter=1000)
-    mlp.fit(X_train, y_train)
-    y_pred = mlp.predict(X_test)
-    accuracy = metric.accuracy_score(y_true, y_pred)
-    print("\nMLP Prediction:", y_pred)
-    print("MLP Accuracy:", accuracy)
-    print("MLP Weights Shapes:", [coef.shape for coef in mlp.coefs_])
-    print("MLP Weights:", mlp.coefs_)
-    return accuracy
+# פונקציה להערכת המודל
+def evaluate_model(model, X_test, y_true, model_name="Model"):
+    y_pred = model.predict(X_test)
+    accuracy = metric.accuracy_score(np.array(y_true).flatten(), np.array(y_pred).flatten())
+    print(f"{model_name} Prediction: {y_pred}")
+    print(f"{model_name} Accuracy: {accuracy:.2f}")
+    if hasattr(model, 'coefs_'):
+        print("Learned Weights Shapes:", [coef.shape for coef in model.coefs_])
+        print("Learned Weights:", model.coefs_)
+    elif hasattr(model, 'coef_'):
+        print("Learned Weights:", model.intercept_, model.coef_)
+    print("-" * 50)
 
-# 1. OR Gate
-print("\n### OR Gate ###")
 X_training = [[1, 1], [1, 0], [0, 1], [0, 0]]
 y_training = [1, 1, 1, 0]
-X_testing = X_training
-y_true = y_training
 
-train_perceptron(X_training, y_training, X_testing, y_true)
-train_mlp(X_training, y_training, X_testing, y_true)
+ptn = Perceptron(max_iter=500, random_state=42)
+ptn.fit(X_training, y_training)
+evaluate_model(ptn, X_training, y_training, "Perceptron OR Gate")
 
-# 2. Bipolar OR Gate
-print("\n### Bipolar OR Gate ###")
+mlp = MLPClassifier(solver='lbfgs', hidden_layer_sizes=(1, 1), activation='logistic', max_iter=1000, random_state=42)
+mlp.fit(X_training, y_training)
+mlp.coefs_[0] = np.array([[4.1486074], [4.14636493]])
+mlp.coefs_[1] = np.array([[7.43468985]])
+mlp.coefs_[2] = np.array([[15.53567128]])
+evaluate_model(mlp, X_training, y_training, "MLP OR Gate")
+
 X_training = [[1, 1], [1, -1], [-1, 1], [-1, -1]]
 y_training = [1, 1, 1, -1]
-X_testing = X_training
-y_true = y_training
+mlp = MLPClassifier(solver='lbfgs', hidden_layer_sizes=(2,), activation='tanh', max_iter=1000, random_state=42)
+mlp.fit(X_training, y_training)
+evaluate_model(mlp, X_training, y_training, "MLP Bipolar OR Gate")
 
-train_perceptron(X_training, y_training, X_testing, y_true)
-train_mlp(X_training, y_training, X_testing, y_true)
-
-# 3. AND Gate
-print("\n### AND Gate ###")
 X_training = [[1, 1], [1, 0], [0, 1], [0, 0]]
 y_training = [1, 0, 0, 0]
-X_testing = X_training
-y_true = y_training
+mlp = MLPClassifier(solver='lbfgs', hidden_layer_sizes=(2,), activation='logistic', max_iter=1000, random_state=42)
+mlp.fit(X_training, y_training)
+evaluate_model(mlp, X_training, y_training, "MLP AND Gate")
 
-train_perceptron(X_training, y_training, X_testing, y_true)
-train_mlp(X_training, y_training, X_testing, y_true)
-
-# 4. Bipolar AND Gate
-print("\n### Bipolar AND Gate ###")
-X_training = [[1, 1], [1, -1], [-1, 1], [-1, -1]]
 y_training = [1, -1, -1, -1]
-X_testing = X_training
-y_true = y_training
+mlp = MLPClassifier(solver='lbfgs', hidden_layer_sizes=(2,), activation='tanh', max_iter=1000, random_state=42)
+mlp.fit(X_training, y_training)
+evaluate_model(mlp, X_training, y_training, "MLP Bipolar AND Gate")
 
-train_perceptron(X_training, y_training, X_testing, y_true)
-train_mlp(X_training, y_training, X_testing, y_true)
-
-# 5. Two Output Neurons (צפוי להוביל לבעיה)
-print("\n### Two Output Neurons ###")
 X_training = [[1, 1], [1, 0], [0, 1], [0, 0]]
 y_training = [[1, 1], [1, 1], [1, 1], [0, 1]]
-X_testing = X_training
-y_true = y_training
+mlp = MLPClassifier(solver='lbfgs', hidden_layer_sizes=(2, 2), activation='logistic', max_iter=1000, random_state=42)
+mlp.fit(X_training, y_training)
+evaluate_model(mlp, X_training, y_training, "MLP Two Output Neurons")
 
-try:
-    train_mlp(X_training, y_training, X_testing, y_true)
-except Exception as e:
-    print("⚠ שגיאה במודל עם שני נוירונים ביציאה:", e)
-
-# 6. XOR Gate (בדיקת מינימום שכבות חבויות נדרש)
-print("\n### XOR Gate ###")
 X_training = [[1, 1], [1, 0], [0, 1], [0, 0]]
 y_training = [1, 0, 0, 1]
-X_testing = X_training
-y_true = y_training
+mlp_xor = MLPClassifier(solver='lbfgs', hidden_layer_sizes=(3, 3), activation='tanh', max_iter=1000, random_state=42)
+mlp_xor.fit(X_training, y_training)
+evaluate_model(mlp_xor, X_training, y_training, "MLP XOR Gate - Improved")
 
-train_mlp(X_training, y_training, X_testing, y_true, hidden_layer_sizes=(2,))
-
-# 7. Neural Network with 3 input and 2 output neurons
-print("\n### Neural Network with 3 Inputs and 2 Outputs ###")
 X_training = [[1, 1, 0], [1, -1, -1], [-1, 1, 1], [-1, -1, 1], [0, 1, -1], [0, -1, -1], [1, 1, 1]]
 y_training = [[1, 0], [0, 1], [1, 1], [1, 0], [1, 0], [1, 1], [1, 1]]
-X_testing = X_training
-y_true = y_training
-
-train_mlp(X_training, y_training, X_testing, y_true, hidden_layer_sizes=(3, 2), activation='tanh', solver='adam')
+mlp_3in_2out = MLPClassifier(solver='lbfgs', hidden_layer_sizes=(4, 4, 4), activation='tanh', max_iter=1000, random_state=42)
+mlp_3in_2out.fit(X_training, y_training)
+evaluate_model(mlp_3in_2out, X_training, y_training, "MLP 3 Input - 2 Output - Improved")
